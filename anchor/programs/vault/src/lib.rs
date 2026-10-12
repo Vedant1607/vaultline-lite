@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{transfer, Transfer};
 
 #[cfg(test)]
 mod tests;
@@ -10,66 +9,42 @@ declare_id!("EZsSZystDUECB5PFCsPvDMyehkAtx8he1r2KjYYxwFmu");
 pub mod vault {
     use super::*;
 
-    pub fn deposit(ctx: Context<VaultAction>, amount: u64) -> Result<()> {
-        require!(ctx.accounts.vault.lamports() == 0, VaultError::VaultAlreadyExists);
-
-        let rent = Rent::get()?.minimum_balance(0);
-        require!(amount > rent, VaultError::InvalidAmount);
-
-        transfer(
-            CpiContext::new(
-                System::id(),
-                Transfer {
-                    from: ctx.accounts.signer.to_account_info(),
-                    to: ctx.accounts.vault.to_account_info(),
-                },
-            ),
-            amount,
-        )?;
-
-        Ok(())
-    }
-
-    pub fn withdraw(ctx: Context<VaultAction>) -> Result<()> {
-        require!(ctx.accounts.vault.lamports() > 0, VaultError::InvalidAmount);
-
-        let bump = ctx.bumps.vault;
-        let signer_key = ctx.accounts.signer.key();
-        let signer_seeds: &[&[&[u8]]] = &[&[b"vault", signer_key.as_ref(), &[bump]]];
-
-        transfer(
-            CpiContext::new_with_signer(
-                System::id(),
-                Transfer {
-                    from: ctx.accounts.vault.to_account_info(),
-                    to: ctx.accounts.signer.to_account_info(),
-                },
-                signer_seeds,
-            ),
-            ctx.accounts.vault.lamports(),
-        )?;
+    pub fn register_document(
+        ctx: Context<RegisterDocument>,
+        document_hash: [u8; 32],
+    ) -> Result<()> {
+        let document_record = &mut ctx.accounts.document_record;
+        document_record.document_hash = document_hash;
+        document_record.registrant = ctx.accounts.registrant.key();
+        document_record.registered_at = Clock::get()?.unix_timestamp;
 
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-pub struct VaultAction<'info> {
+#[instruction(document_hash: [u8; 32])]
+pub struct RegisterDocument<'info> {
     #[account(mut)]
-    pub signer: Signer<'info>,
+    pub registrant: Signer<'info>,
     #[account(
-        mut,
-        seeds = [b"vault", signer.key().as_ref()],
+        init,
+        payer = registrant,
+        space = DocumentRecord::SPACE,
+        seeds = [b"document", document_hash.as_ref()],
         bump,
     )]
-    pub vault: SystemAccount<'info>,
+    pub document_record: Account<'info, DocumentRecord>,
     pub system_program: Program<'info, System>,
 }
 
-#[error_code]
-pub enum VaultError {
-    #[msg("Vault already exists")]
-    VaultAlreadyExists,
-    #[msg("Invalid amount")]
-    InvalidAmount,
+#[account]
+pub struct DocumentRecord {
+    pub document_hash: [u8; 32],
+    pub registrant: Pubkey,
+    pub registered_at: i64,
+}
+
+impl DocumentRecord {
+    pub const SPACE: usize = 8 + 32 + 32 + 8;
 }

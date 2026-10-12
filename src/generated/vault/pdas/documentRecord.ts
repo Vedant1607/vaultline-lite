@@ -7,19 +7,20 @@
  */
 
 import {
-  getAddressEncoder,
+  fixEncoderSize,
   getBytesEncoder,
   getProgramDerivedAddress,
   type Address,
   type ProgramDerivedAddress,
+  type ReadonlyUint8Array,
 } from "@solana/kit";
 
-export type VaultSeeds = {
-  signer: Address;
+export type DocumentRecordSeeds = {
+  documentHash: ReadonlyUint8Array;
 };
 
-export async function findVaultPda(
-  seeds: VaultSeeds,
+export async function findDocumentRecordPda(
+  seeds: DocumentRecordSeeds,
   config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
@@ -28,8 +29,10 @@ export async function findVaultPda(
   return await getProgramDerivedAddress({
     programAddress,
     seeds: [
-      getBytesEncoder().encode(new Uint8Array([118, 97, 117, 108, 116])),
-      getAddressEncoder().encode(seeds.signer),
+      getBytesEncoder().encode(
+        new Uint8Array([100, 111, 99, 117, 109, 101, 110, 116]),
+      ),
+      fixEncoderSize(getBytesEncoder(), 32).encode(seeds.documentHash),
     ],
   });
 }
