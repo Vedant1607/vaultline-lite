@@ -40,7 +40,9 @@ export default function App() {
             </div>
             <div className="rounded-2xl border border-border-low bg-card px-4 py-3 text-sm shadow-sm">
               <p className="font-semibold">Privacy-first by design</p>
-              <p className="mt-1 text-muted">Only a SHA-256 fingerprint leaves the browser.</p>
+              <p className="mt-1 text-muted">
+                Only a SHA-256 fingerprint leaves the browser.
+              </p>
             </div>
           </div>
           <WalletPanel />
@@ -69,13 +71,16 @@ export default function App() {
             <SecurityItem label="Network" value={SOLANA_NETWORK_LABEL} />
             <SecurityItem label="Processing" value="PDF processed locally" />
             <SecurityItem label="Fingerprint" value="SHA-256" />
-            <SecurityItem label="Data handling" value="PDF bytes never uploaded" />
+            <SecurityItem
+              label="Data handling"
+              value="PDF bytes never uploaded"
+            />
           </div>
         </section>
 
         <p className="text-center text-xs text-muted">
-          Registration and verification remain disabled until the blockchain
-          teammate confirms the real program interface.
+          Registration stores only a SHA-256 fingerprint on Solana Devnet.
+          Verification will arrive in a future milestone.
         </p>
       </main>
     </div>
