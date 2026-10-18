@@ -17,18 +17,39 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  parseDepositInstruction,
-  parseWithdrawInstruction,
-  type ParsedDepositInstruction,
-  type ParsedWithdrawInstruction,
+  parseRegisterDocumentInstruction,
+  type ParsedRegisterDocumentInstruction,
 } from "../instructions";
 
 export const VAULT_PROGRAM_ADDRESS =
   "EZsSZystDUECB5PFCsPvDMyehkAtx8he1r2KjYYxwFmu" as Address<"EZsSZystDUECB5PFCsPvDMyehkAtx8he1r2KjYYxwFmu">;
 
+export enum VaultAccount {
+  DocumentRecord,
+}
+
+export function identifyVaultAccount(
+  account: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
+): VaultAccount {
+  const data = "data" in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([13, 153, 55, 14, 109, 39, 136, 125]),
+      ),
+      0,
+    )
+  ) {
+    return VaultAccount.DocumentRecord;
+  }
+  throw new Error(
+    "The provided account could not be identified as a vault account.",
+  );
+}
+
 export enum VaultInstruction {
-  Deposit,
-  Withdraw,
+  RegisterDocument,
 }
 
 export function identifyVaultInstruction(
@@ -39,23 +60,12 @@ export function identifyVaultInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([242, 35, 198, 137, 82, 225, 242, 182]),
+        new Uint8Array([108, 34, 153, 39, 82, 41, 133, 73]),
       ),
       0,
     )
   ) {
-    return VaultInstruction.Deposit;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([183, 18, 70, 156, 148, 109, 161, 34]),
-      ),
-      0,
-    )
-  ) {
-    return VaultInstruction.Withdraw;
+    return VaultInstruction.RegisterDocument;
   }
   throw new Error(
     "The provided instruction could not be identified as a vault instruction.",
@@ -64,31 +74,20 @@ export function identifyVaultInstruction(
 
 export type ParsedVaultInstruction<
   TProgram extends string = "EZsSZystDUECB5PFCsPvDMyehkAtx8he1r2KjYYxwFmu",
-> =
-  | ({
-      instructionType: VaultInstruction.Deposit;
-    } & ParsedDepositInstruction<TProgram>)
-  | ({
-      instructionType: VaultInstruction.Withdraw;
-    } & ParsedWithdrawInstruction<TProgram>);
+> = {
+  instructionType: VaultInstruction.RegisterDocument;
+} & ParsedRegisterDocumentInstruction<TProgram>;
 
 export function parseVaultInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
 ): ParsedVaultInstruction<TProgram> {
   const instructionType = identifyVaultInstruction(instruction);
   switch (instructionType) {
-    case VaultInstruction.Deposit: {
+    case VaultInstruction.RegisterDocument: {
       assertIsInstructionWithAccounts(instruction);
       return {
-        instructionType: VaultInstruction.Deposit,
-        ...parseDepositInstruction(instruction),
-      };
-    }
-    case VaultInstruction.Withdraw: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: VaultInstruction.Withdraw,
-        ...parseWithdrawInstruction(instruction),
+        instructionType: VaultInstruction.RegisterDocument,
+        ...parseRegisterDocumentInstruction(instruction),
       };
     }
     default:
