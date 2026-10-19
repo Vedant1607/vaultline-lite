@@ -8,6 +8,7 @@ import {
 export type PdfFilePickerProps = {
   disabled?: boolean;
   onFingerprint?: (fingerprint: PdfFingerprint | null) => void;
+  onHashingChange?: (isHashing: boolean) => void;
 };
 
 function formatFileSize(sizeBytes: number): string {
@@ -19,6 +20,7 @@ function formatFileSize(sizeBytes: number): string {
 export function PdfFilePicker({
   disabled = false,
   onFingerprint,
+  onHashingChange,
 }: PdfFilePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fingerprint, setFingerprint] = useState<PdfFingerprint | null>(null);
@@ -36,6 +38,7 @@ export function PdfFilePicker({
     if (!file) return;
 
     setIsHashing(true);
+    onHashingChange?.(true);
     try {
       const nextFingerprint = await hashPdf(file);
       setFingerprint(nextFingerprint);
@@ -49,6 +52,7 @@ export function PdfFilePicker({
       );
     } finally {
       setIsHashing(false);
+      onHashingChange?.(false);
     }
   };
 
@@ -56,6 +60,7 @@ export function PdfFilePicker({
     setFingerprint(null);
     setError(null);
     onFingerprint?.(null);
+    onHashingChange?.(false);
     if (inputRef.current) {
       inputRef.current.value = "";
       inputRef.current.click();
